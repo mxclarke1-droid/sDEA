@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Santa Model Test</title>
+
+<style>
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #111;
+}
+
+#info {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 10;
+    background: rgba(0,0,0,.85);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: Arial;
+}
+</style>
+</head>
+
+<body>
+
+<div id="info">🎅 Loading Santa...</div>
+
+<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+
+const scene = new THREE.Scene();
+
+scene.background = new THREE.Color(0x222222);
+
+
+// CAMERA
+
+const camera = new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth / window.innerHeight,
+    0.001,
+    1000000
+);
+
+camera.position.set(
+    0,
+    0,
+    20
+);
+
+
+// RENDERER
+
+const renderer = new THREE.WebGLRenderer({
+    antialias: true
+});
+
+renderer.setPixelRatio(
+    window.devicePixelRatio
+);
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+renderer.outputEncoding =
+    THREE.sRGBEncoding;
+
+document.body.appendChild(
+    renderer.domElement
+);
+
+
+// LIGHTS
+
+const ambient =
+    new THREE.AmbientLight(
+        0xffffff,
+        5
+    );
+
+scene.add(ambient);
+
+
+const light1 =
+    new THREE.DirectionalLight(
+        0xffffff,
+        5
+    );
+
+light1.position.set(
+    10,
+    10,
+    10
+);
+
+scene.add(light1);
+
+
+const light2 =
+    new THREE.DirectionalLight(
+        0xffffff,
+        5
+    );
+
+light2.position.set(
+    -10,
+    5,
+    10
+);
+
+scene.add(light2);
+
+
+const light3 =
+    new THREE.DirectionalLight(
+        0xffffff,
+        5
+    );
+
+light3.position.set(
+    0,
+    -10,
+    10
+);
+
+scene.add(light3);
+
+
+// CONTROLS
+
+const controls =
+    new THREE.OrbitControls(
+        camera,
+        renderer.domElement
+    );
+
+controls.enableDamping = true;
+
+
+// LOADER
+
+const loader =
+    new THREE.GLTFLoader();
+
+
+loader.load(
+
+    "./santa.gltf",
+
+    function(gltf) {
+
+        const santa =
+            gltf.scene;
+
+        scene.add(santa);
+
+
+        console.log(
+            "🎅 SANTA LOADED!"
+        );
+
+
+        let meshCount = 0;
+
+
+        // FIND ALL MESHES
+
+        santa.traverse(
+            function(object) {
+
+                if (object.isMesh) {
+
+                    meshCount++;
+
+                    object.frustumCulled =
+                        false;
+
+                    object.visible =
+                        true;
+
+                    if (object.material) {
+
+                        if (
+                            Array.isArray(
+                                object.material
+                            )
+                        ) {
+
+                            object.material.forEach(
+                                function(mat) {
+
+                                    mat.visible =
+                                        true;
+
+                                    mat.transparent =
+                                        false;
+
+                                    mat.opacity =
+                                        1;
+
+                                    mat.depthWrite =
+                                        true;
+
+                                }
+                            );
+
+                        } else {
+
+                            object.material.visible =
+                                true;
+
+                            object.material.transparent =
+                                false;
+
+                            object.material.opacity =
+                                1;
+
+                            object.material.depthWrite =
+                                true;
+                        }
+                    }
+                }
+
+            }
+        );
+
+
+        console.log(
+            "TOTAL MESHES:",
+            meshCount
+        );
+
+
+        // ORIGINAL BOUNDING BOX
+
+        let box =
+            new THREE.Box3()
+                .setFromObject(santa);
+
+
+        let size =
+            new THREE.Vector3();
+
+        box.getSize(size);
+
+
+        console.log(
+            "MODEL SIZE:",
+            size
+        );
+
+
+        let center =
+            new THREE.Vector3();
+
+        box.getCenter(center);
+
+
+        console.log(
+            "MODEL CENTER:",
+            center
+        );
+
+
+        // CENTER MODEL
+
+        santa.position.x -=
+            center.x;
+
+        santa.position.y -=
+            center.y;
+
+        santa.position.z -=
+            center.z;
+
+
+        // AUTOMATIC SCALE
+
+        const biggest =
+            Math.max(
+                size.x,
+                size.y,
+                size.z
+            );
+
+
+        const wantedSize = 10;
+
+
+        if (biggest > 0) {
+
+            const scale =
+                wantedSize /
+                biggest;
+
+            santa.scale.set(
+                scale,
+                scale,
+                scale
+            );
+
+
+            console.log(
+                "APPLIED SCALE:",
+                scale
+            );
+        }
+
+
+        // RECENTER AFTER SCALE
+
+        box =
+            new THREE.Box3()
+                .setFromObject(santa);
+
+
+        center =
+            new THREE.Vector3();
+
+        box.getCenter(center);
+
+
+        santa.position.x -=
+            center.x;
+
+        santa.position.y -=
+            center.y;
+
+        santa.position.z -=
+            center.z;
+
+
+        // PUT MODEL AT ORIGIN
+
+        santa.position.set(
+            0,
+            0,
+            0
+        );
+
+
+        // FACE CAMERA
+
+        santa.rotation.y =
+            Math.PI;
+
+
+        // FINAL BOUNDING BOX
+
+        box =
+            new THREE.Box3()
+                .setFromObject(santa);
+
+
+        console.log(
+            "FINAL BOX:",
+            box
+        );
+
+
+        // FINAL SIZE
+
+        const finalSize =
+            new THREE.Vector3();
+
+        box.getSize(
+            finalSize
+        );
+
+
+        console.log(
+            "FINAL SIZE:",
+            finalSize
+        );
+
+
+        // CAMERA TARGET
+
+        controls.target.set(
+            0,
+            0,
+            0
+        );
+
+
+        // CAMERA POSITION
+
+        camera.position.set(
+            0,
+            0,
+            20
+        );
+
+
+        camera.lookAt(
+            0,
+            0,
+            0
+        );
+
+
+        controls.update();
+
+
+        document.getElementById(
+            "info"
+        ).innerHTML =
+            "🎅 Santa loaded! " +
+            meshCount +
+            " meshes";
+
+
+        console.log(
+            "🎅 SANTA READY TO VIEW"
+        );
+
+    },
+
+
+    function(progress) {
+
+        if (progress.total) {
+
+            const percent =
+                Math.round(
+                    progress.loaded /
+                    progress.total *
+                    100
+                );
+
+            document.getElementById(
+                "info"
+            ).innerHTML =
+                "🎅 Loading Santa... " +
+                percent +
+                "%";
+        }
+
+    },
+
+
+    function(error) {
+
+        console.error(
+            "SANTA ERROR:",
+            error
+        );
+
+        document.getElementById(
+            "info"
+        ).innerHTML =
+            "❌ Santa failed to load";
+
+    }
+
+);
+
+
+// ANIMATION
+
+function animate() {
+
+    requestAnimationFrame(
+        animate
+    );
+
+    controls.update();
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+animate();
+
+
+// WINDOW RESIZE
+
+window.addEventListener(
+    "resize",
+    function() {
+
+        camera.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+
+    }
+);
+
+</script>
+
+</body>
+</html>
